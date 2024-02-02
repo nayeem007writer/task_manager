@@ -8,7 +8,6 @@ export class AuthController {
 
     @Post('/signup') 
     signUp(@Body(ValidationPipe) authCredentialDto:AuthCredentialDto):void{
-        console.log(authCredentialDto);
         this.authService.signUp(authCredentialDto);
     }
 

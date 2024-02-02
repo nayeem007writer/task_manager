@@ -34,10 +34,8 @@ export class AuthService {
     async validatePassword(authCredentialDto: AuthCredentialDto):Promise<{accessToken:string}>{
         const { username, password } = authCredentialDto;
         const user = await User.findOneBy({username});
-        console.log(user);
 
         if(user && user.validatePassword(password)){
-            console.log(user)
             const payload: JwtPayload = { username}
             const accessToken = this.jwtService.sign(payload);
             return {accessToken };
