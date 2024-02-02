@@ -1,17 +1,17 @@
 import {  Repository  } from "typeorm";
 import { Task } from "./task.entity";
+import { GetTaskFilterDto } from "./dto/get-task-filter.dto";
+import { Injectable } from "@nestjs/common";
 
 // @EntityRepository(Task)
+@Injectable()
 export class TaskRepository extends Repository<Task> {
-//    async createTask(createTaskDto: CreateTaskDto): Promise<Task>{
-//         // const { title, description,} = createTaskDto;
+    // async delete(id: string) {
+    //     const v = parseInt(id);
+    //     this.remove
+//     // }
+//     async getTasks(filterDto: GetTaskFilterDto):Promise<Task[]> {
 
-//         // const task = new Task()
-
-//         // task.description = description;
-//         // task.title = title;
-//         // task.status = TaskStatus.OPEN;
-//         // await task.save();
-//         // return task;
+//         return tasks;
 //     }
 }

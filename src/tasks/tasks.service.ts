@@ -15,7 +15,22 @@ export class TasksService {
         private taskRepository: TaskRepository
     ){}
 
-    // private tasks: Task[] = []
+    async getTasks(filterDto: GetTaskFilterDto): Promise<Task[]>{
+        const { search, status } = filterDto;
+        const query = Task.createQueryBuilder('task');
+
+        if(status) {
+            query.andWhere('task.status = :status', { status });
+        }
+
+        if(search) {
+            query.andWhere('task.search LIKE :search OR task.description LIKE : search', { search: `%${search}%` });
+        }
+
+        const tasks = query.getMany();
+        return tasks;
+    }
+
 
     // getAllTasks(): Task[] {
     //     return this.tasks;
@@ -38,18 +53,21 @@ export class TasksService {
     // }
 
     async getTaskById(id: number):Promise<Task>{
-        const found = await this.taskRepository.findOneBy({id});
+        const found = await Task.findOneBy({id});
             if(!found){
             throw new NotFoundException();
         }
         return found;
     }
 
-    // removeById(id: string):void{
-    //     const found = this.getTaskById(id);
-    //     this.tasks =this.tasks.filter(task => task.id !== found.id);
-
-    // }
+    async remove(id: string){
+        console.log(id)
+        const r = await Task.delete(id);
+        if(r.affected===0){
+            throw new NotFoundException();
+        }
+        console.log(r);
+    }
 
     async createTask(createTaskDto: CreateTaskDto):Promise<Task>{
         const { title, description,} = createTaskDto;
@@ -63,9 +81,10 @@ export class TasksService {
         return task;
     }
 
-    // update (id: string, status: TaskStatus): Task {
-    //     let task = this.getTaskById(id);
-    //     task.status= status;
-    //     return task;
-    // }
+    async update (id: string, status: TaskStatus): Promise<Task> {
+        const task = await this.getTaskById(parseInt(id));
+        task.status =status;
+        await task.save();
+        return task;
+    }
 }
