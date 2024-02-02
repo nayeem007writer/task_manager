@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserRepository } from './user.repository';
+import * as bcrypt from 'bcrypt';
 import { AuthCredentialDto } from './dto/auth-credential.dtot';
 import { User } from './user.entity';
 
@@ -13,13 +14,11 @@ export class AuthService {
 
     async signUp(authCredentialDto: AuthCredentialDto): Promise<void>{
         const { username, password } = authCredentialDto;
-        // const query = User.createQueryBuilder('user');
-        const exists = User.findOneBy({username});
-        console.log(exists)
-        const user = new User();
 
+        const user = new User();
         user.username = username;
-        user.password = password;
+        user.salt = await bcrypt.genSalt();
+        user.password = await this.hashPassword(password,user.salt);
         try{
 
             await user.save();
@@ -27,6 +26,9 @@ export class AuthService {
         catch(err) {
             console.log(err);
         }
+    }
+    private async hashPassword(password: string, salt: string): Promise<string> {
+        return bcrypt.hash(password, salt);
     }
 
 }
