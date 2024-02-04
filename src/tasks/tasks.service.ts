@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 
 // import * as uuid from 'uuid';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -8,15 +8,17 @@ import { TaskRepository } from './task.repository';
 import { Task } from './task.entity';
 import { TaskStatus } from './task-status.enum';
 import { User } from 'src/auth/user.entity';
+import { error } from 'console';
 
 @Injectable()
 export class TasksService {
+    private logger = new Logger('Task service')
     constructor(
         @InjectRepository(TaskRepository)
         private taskRepository: TaskRepository
     ){}
 
-    async getTasks(filterDto: GetTaskFilterDto): Promise<Task[]>{
+    async getTasks(filterDto: GetTaskFilterDto,user:User): Promise<Task[]>{
         const { search, status } = filterDto;
         const query = Task.createQueryBuilder('task');
 
@@ -28,8 +30,14 @@ export class TasksService {
             query.andWhere('task.search LIKE :search OR task.description LIKE : search', { search: `%${search}%` });
         }
 
-        const tasks = query.getMany();
-        return tasks;
+        try {
+           const tasks = query.getMany();
+           return tasks;
+        }
+        catch(err) {
+            this.logger.error(`User ${user.username} faild to get for some issue . DTO:${filterDto}`,err.stack());
+            throw new InternalServerErrorException();
+        }
     }
 
 
@@ -53,22 +61,34 @@ export class TasksService {
     //     return tasks;
     // }
 
-    async getTaskById(id: number):Promise<Task>{
-        const found = await Task.findOneBy({id});
+    async getTaskById(id: number, user: User):Promise<Task>{
+        const ID = user.id;
+        const found = await Task.findOne({
+            where: {
+                id,
+                userId:user.id
+            },
+        });
             if(!found){
             throw new NotFoundException();
         }
         return found;
     }
 
-    async remove(id: string){
+
+    async remove(
+        id: number,
+        user: User
+        ){
         console.log(id)
-        const r = await Task.delete(id);
-        if(r.affected===0){
+
+        const result = await Task.delete({id, userId: user.id})
+        if(result.affected===0){
             throw new NotFoundException();
         }
-        console.log(r);
+        console.log(result);
     }
+
 
     async createTask(createTaskDto: CreateTaskDto,user: User):Promise<Task>{
         const { title, description,} = createTaskDto;        
@@ -80,13 +100,25 @@ export class TasksService {
         task.status = TaskStatus.OPEN;
         task.user =user;
         
-        console.log(task);
-        await task.save();
+        try {
+            await task.save();
+        }
+        catch(err) {
+            this.logger.error(`failed to create a task for User:${user.username} and CreateUserDto:${JSON.stringify(CreateTaskDto)}`,err.stack());
+            throw new InternalServerErrorException();
+        }
+
+        delete task.user;
         return task;
     }
 
-    async update (id: string, status: TaskStatus): Promise<Task> {
-        const task = await this.getTaskById(parseInt(id));
+
+    async update (
+        id: string,
+        status: TaskStatus,
+        user: User
+        ): Promise<Task> {
+        const task = await this.getTaskById(parseInt(id),user);
         task.status =status;
         await task.save();
         return task;
